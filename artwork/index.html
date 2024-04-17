@@ -1,0 +1,61 @@
+<html>
+
+<head>
+    <script>
+        //FOLLOWING IS FOR TESTING PURPOSES: you can add a hash in your url ?hash="yourhash" else it will generate a random hash 
+        let search = new URLSearchParams(window.location.search);
+        let genHash = (size) =>
+            [...Array(size)]
+                .map(() => Math.floor(Math.random() * 16).toString(16))
+                .join("");
+
+        //SET HASH TO THE HASH USED FOR MINTING ON LIVE (FOR TESTING IT'S RANDOM)
+        let hash = search.get('hash') || "0x" + genHash(64);
+
+        //SET TOKEN ID TO TOKENID USED FOR MINTING ON LIVE (FOR TESTING IT'S RANDOM)
+        let tokenId = Math.floor(Math.random() * 256);
+
+        //SET MEMBERSHIP ID TO MEMBERSHIP USED FOR MINTING ON LIVE (FOR TESTING IT'S RANDOM)
+        let membershipId = Math.ceil(Math.random() * 4096);
+
+        let inputData = { "tokenId": tokenId, "membershipId": membershipId, "hash": hash };
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <style type="text/css">
+        * {
+            padding: 0;
+            margin: 0;
+        }
+
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+            background-color: rgb(0, 0, 0);
+        }
+
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            margin: auto;
+            object-fit: contain;
+            display: block;
+            margin: auto;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- LIBRARIES / PACKAGES -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.1/p5.min.js"></script>
+
+    <!-- ART SCRIPT OF ARTIST WOULD BE HERE-->
+    <script defer src="artwork-p5.js"></script>
+</body>
+
+</html>
