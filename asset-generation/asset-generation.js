@@ -1,110 +1,85 @@
-//WE STRONGLY RECOMMEND THE USAGE OF THE FOLLOWING CLASS FOR RANDOMNESS (remove functionality you don't need)
+let R;  // Will hold the Random class instance
+
+// Assuming inputData with hash is globally available
 class Random {
   constructor() {
-    this.useA = false;
-    let sfc32 = function (uint128Hex) {
-      let a = parseInt(uint128Hex.substr(0, 8), 16);
-      let b = parseInt(uint128Hex.substr(8, 8), 16);
-      let c = parseInt(uint128Hex.substr(16, 8), 16);
-      let d = parseInt(uint128Hex.substr(24, 8), 16);
-      return function () {
-        a |= 0;
-        b |= 0;
-        c |= 0;
-        d |= 0;
-        let t = (((a + b) | 0) + d) | 0;
-        d = (d + 1) | 0;
-        a = b ^ (b >>> 9);
-        b = (c + (c << 3)) | 0;
-        c = (c << 21) | (c >>> 11);
-        c = (c + t) | 0;
-        return (t >>> 0) / 4294967296;
-      };
+    let offset = 0;
+    for (let i = 2; i < 66; i += 8) offset += parseInt(inputData.hash.substr(i, 8), 16);
+    offset %= 7;
+
+    const p = pos => parseInt(inputData.hash.substr((pos + offset), 8), 16);
+    let a = p(2) ^ p(34), b = p(10) ^ p(42), c = p(18) ^ p(50), d = p(26) ^ p(58) ^ p(2 + (8 - offset));
+
+    this.r = () => {
+      a |= 0; b |= 0; c |= 0; d |= 0;
+      let t = (((a + b) | 0) + d) | 0;
+      d = (d + 1) | 0; a = b ^ (b >>> 9);
+      b = (c + (c << 3)) | 0; c = (c << 21) | (c >>> 11);
+      c = (c + t) | 0;
+      return (t >>> 0) / 4294967296;
     };
-    this.prngA = new sfc32(inputData.hash.substr(2, 32));
-    this.prngB = new sfc32(inputData.hash.substr(34, 32));
-    for (let i = 0; i < 1e6; i += 2) {
-      this.prngA();
-      this.prngB();
-    }
+    for (let i = 0; i < 256; i++) this.r();
   }
-  // random number between 0 (inclusive) and 1 (exclusive)
-  random_dec() {
-    this.useA = !this.useA;
-    return this.useA ? this.prngA() : this.prngB();
-  }
-  // random number between a (inclusive) and b (exclusive)
-  random_num(a, b) {
-    return a + (b - a) * this.random_dec();
-  }
-  // random integer between a (inclusive) and b (inclusive)
-  // requires a < b for proper probability distribution
-  random_int(a, b) {
-    return Math.floor(this.random_num(a, b + 1));
-  }
-  // random boolean with p as percent liklihood of true
-  random_bool(p) {
-    return this.random_dec() < p;
-  }
-  // random value in an array of items
-  random_choice(list) {
-    return list[this.random_int(0, list.length - 1)];
-  }
+  random_dec = () => this.r();
+  random_num = (a, b) => a + (b - a) * this.random_dec();
+  random_int = (a, b) => Math.floor(this.random_num(a, b + 1));
+  random_bool = (p) => this.random_dec() < p;
+  random_choice = (list) => list[this.random_int(0, list.length - 1)];
 }
 
-function setup() {
-  //MAKE SURE TO PROVIDE THE ASPECT RATIO
-  let aspectRatio = 1.35;
+let c, ctx;
 
-  //dp and multipluing with dp is not necessary for p5js
+function setup() {
+  let aspectRatio = 0.75;
   let dp = window.devicePixelRatio;
 
   let ih = window.innerHeight * dp;
   let iw = window.innerWidth * dp;
 
-  //P5JS -> replace with createCanvas
-  if (ih / iw < aspectRatio) {
-    canvas.height = ih;
-    canvas.width = ih / aspectRatio;
+
+  c = document.createElement('canvas');
+  document.body.appendChild(c);
+
+  if (iw / ih < aspectRatio) {
+    c.width = iw;
+    c.height = iw / aspectRatio;
   } else {
-    canvas.width = iw;
-    canvas.height = iw * aspectRatio;
+    c.width = ih * aspectRatio;
+    c.height = ih;
   }
-  //P5JS -> remove
-  document.body.appendChild(canvas);
+
+  ctx = c.getContext('2d');
+
+  R = new Random();
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, c.width, c.height);
 }
 
 function draw() {
-  //P5JS -> remove
-  let ctx = canvas.getContext("2d");
-
-  //INITIATE THE RANDOM CLASS
-  let R = new Random();
-
-  //EVERYTHING BELOW HERE SHOULD BE THE CODE FOR YOUR ARTWORK
+  let amountOfLines = Math.ceil(R.r() * 3);
   let color = "#" + ("000000" + Math.floor(R.random_dec() * 16777215).toString(16)).slice(-6);
 
-  //EXAMPLES USING THE RANDOM CLASS
-  let startX = canvas.width * R.random_dec();
-  let startY = canvas.height * R.random_dec();
-  let endX = canvas.width * R.random_dec();
-  let endY = canvas.height * R.random_dec();
-
-  //MAKE SURE ALL VARIABLES ARE DIMENSION AGNOSTIC, E.G.: LINEWIDTH BASED OF CANVAS WIDTH
-  let lineWidth = canvas.width * 0.05;
-
-  //DRAW ARTWORK -> UPDATE THIS CODE WITH YOUR ART
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, c.width, c.height);
 
   ctx.strokeStyle = color;
-  ctx.lineWidth = lineWidth;
-  ctx.moveTo(startX, startY);
-  ctx.lineTo(endX, endY);
-  ctx.stroke();
+  ctx.lineWidth = c.width * 0.05;
 
-  ctx.rect(0, 0, canvas.width, canvas.height);
-  ctx.stroke();
+  for (let i = 0; i < amountOfLines; i++) {
+    let startX = c.width * R.random_dec();
+    let startY = c.height * R.random_dec();
+    let endX = c.width * R.random_dec();
+    let endY = c.height * R.random_dec();
+
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+  }
+
+  ctx.strokeRect(0, 0, c.width, c.height);
+
+  window.rendered = c;
 
   //EXAMPLE OF HOW TO ADD AN ATTRIBUTE
   metaData.attributes.push({
@@ -113,10 +88,8 @@ function draw() {
   });
 
   //WHEN YOUR ARTWORK HAS LOADED AND ALL YOUR TRAITS HAVE BEEN ADDED CALL DOWNLOAD_FILES WITH YOUR CANVAS AS ARGUMENT
-  download_files(canvas);
+  download_files(c);
 }
 
-//P5JS -> remove
-let canvas = document.createElement("canvas");
 setup();
 draw();
